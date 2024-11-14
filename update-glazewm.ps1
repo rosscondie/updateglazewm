@@ -1,5 +1,3 @@
-# PowerShell script to automatically download and install the latest GlazeWM and Zebar versions
-
 # Function to get the installed version of a program
 function Get-InstalledVersion {
     param (
@@ -12,11 +10,11 @@ function Get-InstalledVersion {
         if ($installedProgram) {
             return $installedProgram.Version
         } else {
-            return $null
+            return "Not Installed"
         }
     } catch {
         Write-Host ("An error occurred while checking installed version for " + $programName + ": " + $_.Exception.Message)
-        return $null
+        return "Unknown"
     }
 }
 
@@ -47,26 +45,24 @@ function Install-Program {
         # Get the installed version of the program
         $installedVersion = Get-InstalledVersion -programName $programName
 
+        # Check if update is available
         if ($installedVersion -and ($installedVersion -eq $latestVersion)) {
             Write-Host "$programName is already up to date (version $installedVersion). Skipping installation."
             return $true
         }
 
+        # Display version information
         Write-Host "Latest $programName version is: $latestVersion"
-        if ($installedVersion) {
-            Write-Host "Installed version: $installedVersion"
-        } else {
-            Write-Host "$programName is not installed."
-        }
+        Write-Host "Installed version: $installedVersion"
 
         # Define where to save the downloaded file
         $downloadPath = "$env:TEMP\${programName}_installer.$installer_type"
 
-        Write-Host "Downloading $programName $latestVersion..."
-
         # Download the file
-        Invoke-WebRequest -Uri $downloadUrl -OutFile $downloadPath
-        Write-Host "Download complete!"
+        $downloadedBytes = 0
+        $totalBytes = $asset.size
+        Write-Host "Downloading $programName $latestVersion..."
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $downloadPath -WebRequestSessionOption 'UserAgent=PowerShell' -Progress
 
         # Check if download succeeded
         if (-not (Test-Path $downloadPath)) {
@@ -75,19 +71,15 @@ function Install-Program {
         }
 
         # Install
-        Write-Host "Installing $programName..."
         if ($installer_type -eq "msi") {
             # MSI installation with verbose logging
             $msiLogPath = "$env:TEMP\$programName-install.log"
             $installCommand = "/i `"$downloadPath`" /quiet /log `"$msiLogPath`""
-            Write-Host "Executing MSI install command: msiexec.exe $installCommand"
             Start-Process msiexec.exe -ArgumentList $installCommand -Wait
             Write-Host "MSI installation log created at: $msiLogPath"
         } else {
             # EXE installation
-            $installCommand = "/SILENT"
-            Write-Host "Executing EXE install command: $downloadPath $installCommand"
-            Start-Process $downloadPath -ArgumentList $installCommand -Wait
+            Start-Process $downloadPath -ArgumentList "/SILENT" -Wait
         }
 
         # Clean up the installer
@@ -123,7 +115,7 @@ $glazeSuccess = Install-Program -repo "glzr-io/glazewm" `
 
 # Update Zebar
 $zebarSuccess = Install-Program -repo "glzr-io/zebar" `
-                              -filePattern "zebar-*-x64.msi" `
+                              -filePattern "zebar-*.msi" `
                               -programName "Zebar" `
                               -installer_type "msi"
 
@@ -131,5 +123,4 @@ $zebarSuccess = Install-Program -repo "glzr-io/zebar" `
 Write-Host "`nUpdate Summary:"
 Write-Host "GlazeWM: $(if ($glazeSuccess) { 'Updated successfully' } else { 'Update failed' })"
 Write-Host "Zebar: $(if ($zebarSuccess) { 'Updated successfully' } else { 'Update failed' })"
-
 Write-Host "`nAll done!"
