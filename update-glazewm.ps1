@@ -74,7 +74,7 @@ function Install-Program {
         if ($installer_type -eq "msi") {
             # MSI installation with verbose logging
             $msiLogPath = "$env:TEMP\$programName-install.log"
-            $installCommand = "/i `"$downloadPath`" /quiet /log `"$msiLogPath`""
+            $installCommand = "/i `"$downloadPath`" /quiet /log `"$msiLogPath`""  # MSI installation command
             Start-Process msiexec.exe -ArgumentList $installCommand -Wait
             Write-Host "MSI installation log created at: $msiLogPath"
         } else {
@@ -105,7 +105,7 @@ function Install-Program {
 }
 
 # Main script execution
-Write-Host "Starting update process for GlazeWM and Zebar..."
+Write-Host "Starting update process for GlazeWM..."
 
 # Update GlazeWM
 $glazeSuccess = Install-Program -repo "glzr-io/glazewm" `
@@ -113,14 +113,7 @@ $glazeSuccess = Install-Program -repo "glzr-io/glazewm" `
                               -programName "GlazeWM" `
                               -installer_type "exe"
 
-# Update Zebar
-$zebarSuccess = Install-Program -repo "glzr-io/zebar" `
-                              -filePattern "zebar-*.msi" `
-                              -programName "Zebar" `
-                              -installer_type "msi"
-
 # Final status report
 Write-Host "`nUpdate Summary:"
 Write-Host "GlazeWM: $(if ($glazeSuccess) { 'Updated successfully' } else { 'Update failed' })"
-Write-Host "Zebar: $(if ($zebarSuccess) { 'Updated successfully' } else { 'Update failed' })"
 Write-Host "`nAll done!"
